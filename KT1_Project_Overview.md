@@ -50,3 +50,7 @@ CookiQ — это интеллектуальный помощник, котор�
 ## 5. Контакт для связи
 
 - Ссылка на [Telegram-чат проекта](https://t.me/project_ai_product_assistant)
+- Совкова София [Telegram](https://t.me/ggranpiri)
+- Синицина Софья [Telegram](https://t.me/kryalka)
+- Иванова Маргарита [Telegram](https://t.me/lavandamor)
+- Хорт Матвей [Telegram](https://t.me/mdkhuni)
