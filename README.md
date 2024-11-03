@@ -48,8 +48,8 @@ CookiQ — это интеллектуальный помощник, котор�
     Создайте файл .env в корневой директории и добавьте следующие данные:
 
    
-    OZON_API_CLIENT_ID=ваш_client_id
-    OZON_API_KEY=ваш_api_key
+    VKYSVILL_API_CLIENT_ID=ваш_client_id
+    VKYSVILL_API_KEY=ваш_api_key
     TELEGRAM_TOKEN=ваш_telegram_token
     OPENAI_API_KEY=ваш_openai_key
     
