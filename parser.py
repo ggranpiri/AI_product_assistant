@@ -53,14 +53,17 @@ def parse_products(category_url):
         product_cards = soup.select('.ProductCards__list .ProductCard')
 
         for card in product_cards:
-            name_element = card.select_one('.ProductCard__link')
-            name = name_element.get('title').strip().replace("NBSP", " ") if name_element else 'No name'
-            link = BASE_URL + name_element['href'] if name_element else 'No link'
-            quantity = card.select_one('.ProductCard__weight').get_text(strip=True) if card.select_one(
-                '.ProductCard__weight') else 'No quantity'
-            price = card.select_one('.Price.Price--md.Price--gray.Price--label').get_text(strip=True).replace("THSP",
-                                                                                                              " ") if card.select_one(
-                '.Price.Price--md.Price--gray.Price--label') else 'No price'
+            name = card.select_one('.ProductCard__link')
+            link = ''
+            if name:
+                name = name.get('title').strip().replace("NBSP", " ")
+                link = BASE_URL + name['href']
+            quantity = card.select_one('.ProductCard__weight')
+            if quantity:
+                quantity = quantity.get_text(strip=True)
+            price = card.select_one('.Price.Price--md.Price--gray.Price--label')
+            if price:
+                price = price.get_text(strip=True).replace("THSP", " ")
 
             # Добавляем информацию о продукте в список
             products.append({
