@@ -12,11 +12,14 @@ logger = logging.getLogger(__name__)
 async def start(update: Update, context: CallbackContext) -> None:
     # Главное меню с кнопками
     keyboard = [
-        [InlineKeyboardButton("Составить корзину", callback_data='basket')],
-        [InlineKeyboardButton("Составить рецепт", callback_data='recipe')]
+        [InlineKeyboardButton("🍎 Составить корзину", callback_data='basket')],
+        [InlineKeyboardButton("🍳 Составить рецепт", callback_data='recipe')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Привет! Я — умный помощник для составления продуктовой корзины или кулинарного рецепта.", reply_markup=reply_markup)
+    await update.message.reply_text(
+        "Я — ваш умный помощник, который поможет:\n"
+        "- 🛒 Составить удобный список покупок.\n"
+        "- 🥗 Создать вкусный рецепт из ваших продуктов.\n\n", reply_markup=reply_markup)
 
 
 # Обработка команд через меню BotFather
@@ -49,7 +52,7 @@ async def button(update: Update, context: CallbackContext) -> None:
 
 # Основная функция для запуска бота
 def main() -> None:
-    token = '7762120638:AAEn-KaM6kWue3UZVqNMtHz8VrChQGeRIO0' 
+    token = '7762120638:AAEn-KaM6kWue3UZVqNMtHz8VrChQGeRIO0'
 
     # Создание приложения (вместо Updater)
     application = Application.builder().token(token).build()
