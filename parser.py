@@ -35,7 +35,7 @@ def get_total_pages(category_url):
     if len(last_page) > 1:
         return int(last_page[-2].get("data-page"))
     else:
-        return int(last_page[-1].get("data-page"))
+        return 1
 
 
 # Функция для парсинга продуктов на странице категории
@@ -44,7 +44,7 @@ def parse_products(category_url):
     products = []
 
     # Проходим по каждой странице категории
-    for page in range(1, total_pages - 2):
+    for page in range(1, total_pages + 1):
         page_url = f"{category_url}?PAGEN_1={page}"
         response = requests.get(page_url, headers=HEADERS)
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -53,11 +53,11 @@ def parse_products(category_url):
         product_cards = soup.select('.ProductCards__list .ProductCard')
 
         for card in product_cards:
-            name = card.select_one('.ProductCard__link')
+            name_element = card.select_one('.ProductCard__link')
             link = ''
-            if name:
-                name = name.get('title').strip().replace("NBSP", " ")
-                link = BASE_URL + name['href']
+            if name_element:
+                name = name_element.get('title').strip().replace("NBSP", " ")
+                link = BASE_URL + name_element['href']
             quantity = card.select_one('.ProductCard__weight')
             if quantity:
                 quantity = quantity.get_text(strip=True)
@@ -77,14 +77,16 @@ def parse_products(category_url):
 
 
 # Основная функция для парсинга всех категорий и записи в JSON
-def main():
+def parse():
+    print("Парсим категории...")
     categories = get_categories()
     data = {}
 
-    for category in categories:
+    for category in categories[:-3]:
         print(f"Парсим категорию: {category['name']}", end=', ')
         products = parse_products(category["url"])
-        print(f"Обработано {len(products)} продуктов")
+        data[category['name']] = products
+        print(f"обработано {len(products)} продукт")
 
     with open("vkusvill_products.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
@@ -92,4 +94,4 @@ def main():
     print(f"Все продукты сохранены в 'vkusvill_products.json'")
 
 
-main()
+parse()
