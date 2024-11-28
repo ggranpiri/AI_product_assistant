@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, filters
@@ -7,11 +8,13 @@ import logging
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
+USER_STATE = {}
+FAVORITES = {}
+
 def get_date() -> str:
     """Получение текущей даты и времени в формате строки."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-# Логирование
 def log(update: Update) -> None:
     """Логирование действий пользователя."""
     if update.message:
@@ -19,89 +22,52 @@ def log(update: Update) -> None:
         name = f"{user.first_name} {user.last_name or ''}".strip()
         text = update.message.text
         print(f'{get_date()} - {name} (id {user.id}) написал: "{text}"')
-
     elif update.callback_query:
         query = update.callback_query
         user = query.from_user
         action = query.data
         print(f'{get_date()} - {user.first_name} (id {user.id}) нажал кнопку: "{action}"')
-
     else:
         print(f"{get_date()} - system_log: Неизвестное действие")
 
-# Глобальные переменные
-USER_STATE = {}
-FAVORITES = {}
-ORDER_HISTORY = {}
-
-# Функции для взаимодействия с пользователем
 async def start(update: Update, context: CallbackContext) -> None:
-    """Приветственное сообщение и главное меню."""
-    log(update)
+    """Стартовое сообщение и основное меню."""
+    await send_main_menu(update, context, "Я — ваш умный помощник, который поможет:\n"
+                                          "- 🛒 Составить удобный список покупок.\n"
+                                          "- 🥗 Создать вкусный рецепт из ваших продуктов.\n\n")
+
+async def send_main_menu(update: Update, context: CallbackContext, text: str) -> None:
+    """Отправка главного меню с кастомным текстом."""
     keyboard = [
         [InlineKeyboardButton("🍎 Составить корзину", callback_data='shopping')],
-        [InlineKeyboardButton("Просмотреть избранное", callback_data='view_favorites')],
-        [InlineKeyboardButton("История заказов", callback_data='order_history')]
+        [InlineKeyboardButton("Просмотреть избранное", callback_data='view_favorites')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "Я — ваш умный помощник, который поможет:\n"
-        "- 🛒 Составить удобный список покупок.\n"
-        "- 🥗 Создать вкусный рецепт из ваших продуктов.\n\n", reply_markup=reply_markup)
 
-async def shopping(update: Update, context: CallbackContext) -> None:
-    """Обработчик команды /shopping."""
-    log(update)
-    chat_id = update.effective_chat.id
-    USER_STATE[chat_id] = 'shopping'
-
-    keyboard = [[InlineKeyboardButton("Назад", callback_data='back')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    if update.message:
-        await update.message.reply_text(
-            "Вы выбрали: Составить корзину. Опишите, что хотите приготовить, или введите список продуктов.",
-            reply_markup=reply_markup
-        )
-    elif update.callback_query:
-        await update.callback_query.message.edit_text(
-            "Вы выбрали: Составить корзину. Опишите, что хотите приготовить, или введите список продуктов.",
-            reply_markup=reply_markup
-        )
-
-async def view_favorites(update: Update, context: CallbackContext) -> None:
-    """Просмотр избранных корзин."""
-    log(update)
-    chat_id = update.effective_chat.id
-    favorites = FAVORITES.get(chat_id, {})
-    if not favorites:
-        await update.message.reply_text("Ваш список избранных корзин пуст.")
+    if update:
+        if update.callback_query:
+            await update.callback_query.edit_message_text(text, reply_markup=reply_markup)
+        elif update.message:
+            await update.message.reply_text(text, reply_markup=reply_markup)
     else:
-        favorites_list = "\n\n".join(f"Корзина '{name}':\n{cart}" for name, cart in favorites.items())
-        keyboard = [
-            [InlineKeyboardButton("🔁 Повторить заказ", callback_data='repeat_order')],
-            [InlineKeyboardButton("🗑 Удалить корзину", callback_data='delete_cart')],
-            [InlineKeyboardButton("✏️ Переименовать корзину", callback_data='rename_cart')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(f"Ваши избранные корзины:\n\n{favorites_list}", reply_markup=reply_markup)
+        chat_id = context._chat_id
+        await context.bot.send_message(chat_id, text, reply_markup=reply_markup)
 
 async def handle_text(update: Update, context: CallbackContext) -> None:
     """Обработка текстовых сообщений."""
     log(update)
     chat_id = update.effective_chat.id
     text = update.message.text.strip()
+
     state = USER_STATE.get(chat_id)
 
     if state == 'shopping':
-        # Создание корзины
         processing_message = await update.message.reply_text("Ваш запрос обрабатывается, пожалуйста, подождите...")
         ingredients_list = get_ingredients_list(text)
-        context.user_data["last_cart"] = ingredients_list  # Сохраняем корзину
+        context.user_data["last_cart"] = ingredients_list
 
         await processing_message.edit_text(f"Список продуктов: {ingredients_list}")
 
-        # Запрос добавления корзины в избранное
         keyboard = [
             [InlineKeyboardButton("Да", callback_data='add_to_favorites')],
             [InlineKeyboardButton("Нет", callback_data='back')]
@@ -111,15 +77,13 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
         USER_STATE[chat_id] = 'ask_favorite'
 
     elif state == 'naming_cart':
-        # Присвоение имени корзине
-        last_cart = context.user_data.get("last_cart")
-        if not last_cart:
-            await update.message.reply_text("Ошибка: корзина не найдена. Попробуйте снова.")
-            USER_STATE.pop(chat_id, None)
-            return
-
         if not text:
             await update.message.reply_text("Пожалуйста, введите корректное название корзины.")
+            return
+
+        last_cart = context.user_data.get("last_cart")
+        if not last_cart:
+            await update.message.reply_text("Ошибка: нет последней корзины для сохранения.")
             return
 
         if chat_id not in FAVORITES:
@@ -127,89 +91,88 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
 
         FAVORITES[chat_id][text] = last_cart
         await update.message.reply_text(f"Корзина '{text}' добавлена в избранное!")
+
         USER_STATE.pop(chat_id, None)
+        await send_main_menu(update, context, "Могу ли я вам ещё чем-нибудь помочь?")
 
     else:
         await update.message.reply_text("Пожалуйста, выберите команду из меню.")
 
-async def button(update: Update, context: CallbackContext) -> None:
+async def shopping(update: Update, context: CallbackContext) -> None:
+    """Обработка команды для создания корзины."""
     log(update)
+    chat_id = update.effective_chat.id
+    USER_STATE[chat_id] = 'shopping'
+    await update.message.reply_text(
+        "Вы выбрали: Составить корзину. Опишите, что хотите приготовить или введите список продуктов.")
+
+async def button(update: Update, context: CallbackContext) -> None:
+    """Обработка нажатий кнопок."""
     query = update.callback_query
+    chat_id = query.message.chat.id
     await query.answer()
 
-    chat_id = query.message.chat.id
     if query.data == 'shopping':
-        await shopping(update, context)
-
+        USER_STATE[chat_id] = 'shopping'
+        await query.edit_message_text("Опишите, что хотите приготовить или введите список продуктов.")
     elif query.data == 'add_to_favorites':
-        last_cart = context.user_data.get("last_cart", None)
-        if not last_cart:
-            await query.edit_message_text("У вас еще нет созданной корзины.")
-        else:
-            await query.edit_message_text("Как вы хотите назвать свою корзину?")
-            USER_STATE[chat_id] = 'naming_cart'
-
-    elif query.data == 'view_favorites':
-        await view_favorites(update, context)
-
-    elif query.data == 'repeat_order':
-        # Повторить заказ
-        favorites = FAVORITES.get(chat_id, {})
-        if not favorites:
-            await query.edit_message_text("У вас нет избранных корзин для повторения.")
-        else:
-            await query.edit_message_text("Выберите корзину для повторного заказа.")
-
-    elif query.data == 'delete_cart':
-        # Удалить корзину
-        favorites = FAVORITES.get(chat_id, {})
-        if not favorites:
-            await query.edit_message_text("У вас нет корзин для удаления.")
-        else:
-            cart_name = query.message.text.split("\n")[0].split(" ")[1].strip("'")  # Извлекаем название корзины
-            if cart_name in favorites:
-                del favorites[cart_name]
-                await query.edit_message_text(f"Корзина '{cart_name}' удалена.")
-            else:
-                await query.edit_message_text("Корзина не найдена.")
-
-    elif query.data == 'rename_cart':
-        # Переименовать корзину
-        favorites = FAVORITES.get(chat_id, {})
-        if not favorites:
-            await query.edit_message_text("У вас нет корзин для переименования.")
-        else:
-            cart_name = query.message.text.split("\n")[0].split(" ")[1].strip("'")
-            if cart_name in favorites:
-                await query.edit_message_text(f"Как вы хотите переименовать корзину '{cart_name}'?")
-                USER_STATE[chat_id] = 'naming_cart'
-            else:
-                await query.edit_message_text("Корзина не найдена.")
-
+        USER_STATE[chat_id] = 'naming_cart'
+        await query.edit_message_text("Как вы хотите назвать свою корзину?")
     elif query.data == 'back':
+        state = USER_STATE.get(chat_id)
+        if state == 'viewing_favorites':
+            await send_favorites_menu(update, chat_id)
+        else:
+            USER_STATE.pop(chat_id, None)
+            await send_main_menu(update, context, "Могу ли я вам ещё чем-нибудь помочь?")
+    elif query.data == 'view_favorites':
+        USER_STATE[chat_id] = 'viewing_favorites'
+        await send_favorites_menu(update, chat_id)
+    elif query.data.startswith('view_cart:'):
+        cart_name = query.data.split(":", 1)[1]
+        cart = FAVORITES.get(chat_id, {}).get(cart_name, "Корзина не найдена.")
         keyboard = [
-            [InlineKeyboardButton("🍎 Составить корзину", callback_data='shopping')],
-            [InlineKeyboardButton("Просмотреть избранное", callback_data='view_favorites')]
+            [InlineKeyboardButton("Назад", callback_data='back')],
+            [InlineKeyboardButton("Повторить заказ", callback_data=f'repeat_order:{cart_name}')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("Что я могу для вас сделать?", reply_markup=reply_markup)
+        await query.edit_message_text(f"Содержимое корзины '{cart_name}':\n{cart}", reply_markup=reply_markup)
+    elif query.data.startswith('repeat_order:'):
+        cart_name = query.data.split(":", 1)[1]
+        cart = FAVORITES.get(chat_id, {}).get(cart_name, "Корзина не найдена.")
+        await repeat_order_and_reset_state(chat_id, cart_name, cart, context)
 
+async def repeat_order_and_reset_state(chat_id: int, cart_name: str, cart: dict, context: CallbackContext) -> None:
+    """Повтор заказа и возврат в главное меню."""
+    await context.bot.send_message(chat_id, f"Вы повторяете заказ для корзины '{cart_name}':\n{cart}")
+    await asyncio.sleep(0.5)
+    USER_STATE.pop(chat_id, None)
+    await send_main_menu(None, context, "Могу ли я вам ещё чем-нибудь помочь?")
+
+async def send_favorites_menu(update: Update, chat_id: int) -> None:
+    """Отправка меню избранных корзин с кнопками."""
+    favorites = FAVORITES.get(chat_id, {})
+    if not favorites:
+        await update.callback_query.edit_message_text("Ваш список избранных корзин пуст.")
     else:
-        await query.edit_message_text("Неизвестный выбор.")
+        keyboard = [
+            [InlineKeyboardButton(name, callback_data=f"view_cart:{name}")]
+            for name in favorites
+        ] + [[InlineKeyboardButton("Назад", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.callback_query.edit_message_text("Ваши избранные корзины:", reply_markup=reply_markup)
 
-# Основная функция
 def main() -> None:
-    print("Запуск...")
+    """Запуск бота."""
+    print("Запуск бота...")
     application = Application.builder().token(config.TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("shopping", shopping))
-    application.add_handler(CommandHandler("view_favorites", view_favorites))
-
     application.add_handler(CallbackQueryHandler(button))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     application.run_polling()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
