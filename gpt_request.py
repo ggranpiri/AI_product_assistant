@@ -90,28 +90,26 @@ def get_ingredients_per_portion(user_message: str) -> dict:
     system_prompt = (
         "Ты профессиональный кулинарный помощник. Твоя задача — генерировать список ингредиентов с точным количеством "
         "в граммах для ОДНОЙ порции рецепта, который описывает пользователь. Форматируй свой ответ строго в виде JSON-словаря, "
-        "где каждый ингредиент является ключом, а значение — целым числом, представляющим количество в граммах (без указания единиц измерения).\n\n"
+        "где каждый ингредиент является ключом, а значение — списком, где первый элемент кол-во продукта, а второе - единица ихмерения.\n\n"
         "Особые инструкции:\n"
         "1. Игнорируй любые упоминания длительности или количества порций в исходном сообщении.\n"
         "2. Ответ должен строго соответствовать JSON-формату, без каких-либо пояснений и единиц измерения в значениях.\n\n"
         "Структура JSON-ответа, СТРОГО СЛЕДУЙ ЕЙ И ТОЛЬКО ЕЙ:\n"
         "{\n"
-        "    \"ingredient1\": amount_in_grams,\n"
-        "    \"ingredient2\": amount_in_grams,\n"
+        "    \"ingredient1\": [amount_in_grams, unit_of_measurement],\n"
+        "    \"ingredient2\": [amount_in_grams, unit_of_measurement],\n"
         "    ...\n"
         "}\n\n"
         "Пример правильного ответа:\n"
         "{\n"
-        "    \"картофель\": 500,\n"
-        "    \"лук репчатый\": 100,\n"
-        "    \"яйцо\": 50\n"
+        "    \"картофель\": [1, кг],\n"
+        "    \"лук репчатый\": [2, шт],\n"
+        "    \"молоко\": [500, мл]\n"
         "}\n\n"
         "Примеры неправильных ответов:\n"
-        "- Включение единиц измерения в значения: \"картофель\": \"500 грамм\"\n"
         "- Добавление пояснений вне JSON: \"Вот ваш список ингредиентов...\"\n"
         "- Использование нечисловых значений: \"соль\": \"по вкусу\"\n\n"
         "Помни, что ответ должен быть строго в формате JSON, без лишних пояснений. Подсчитай количества ингредиентов "
-        "в граммах для одной порции."
     )
 
     messages = [
@@ -125,7 +123,7 @@ def get_ingredients_per_portion(user_message: str) -> dict:
             ingredients_json = json.loads(assistant_message)
 
             # Проверка, что это словарь и все значения - целые числа
-            if isinstance(ingredients_json, dict) and all(isinstance(v, int) for v in ingredients_json.values()):
+            if isinstance(ingredients_json, dict) and all(isinstance(v[0], int) for v in ingredients_json.values()):
                 return ingredients_json
             else:
                 raise ValueError("JSON содержит некорректные данные.")
@@ -134,7 +132,7 @@ def get_ingredients_per_portion(user_message: str) -> dict:
                 "role": "user",
                 "content": (
                     "Ваш предыдущий ответ не соответствует требуемому формату. Пожалуйста, предоставьте ответ строго "
-                    "в формате JSON-словаря, где значения — целые числа в граммах без единиц измерения и пояснений."
+                    "в формате JSON-словаря, где значения список из двух элементов, кол-во продукта и единица измерения. Ответ без пояснений."
                 )
             })
     raise ValueError("Не удалось получить корректный JSON после нескольких попыток.")
@@ -153,7 +151,7 @@ def get_ingredients_list(user_message: str) -> dict:
         print(f"Ингредиенты на одну порцию: {ingredients_per_portion}")
 
         # Этап 3: Умножение на количество порций
-        total_ingredients = {ingredient: amount * portions for ingredient, amount in ingredients_per_portion.items()}
+        total_ingredients = {ingredient: [amount[0] * portions, amount[1]] for ingredient, amount in ingredients_per_portion.items()}
 
         return total_ingredients
 

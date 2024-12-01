@@ -191,7 +191,7 @@ def get_links_from_list(products_needed, json_file):
                     break
 
     return result
-parse_product_from_vv()
+
 
 products_list = {
     'свекла': [2100, 'г'],

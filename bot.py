@@ -82,7 +82,7 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
         # Сохранение в историю
         if chat_id not in PURCHASE_HISTORY:
             PURCHASE_HISTORY[chat_id] = []
-        PURCHASE_HISTORY[chat_id].append(ingredients_list)
+        PURCHASE_HISTORY[chat_id].append(ingredients_list_with_links)
 
         USER_STATE[chat_id] = 'ask_favorite'
 
