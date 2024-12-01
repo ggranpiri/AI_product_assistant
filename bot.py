@@ -4,6 +4,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, filters
 import config
 from gpt_request import get_ingredients_list
+from parser import get_links_from_list
 import logging
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -65,10 +66,11 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
 
     if state == 'shopping':
         processing_message = await update.message.reply_text("Ваш запрос обрабатывается, пожалуйста, подождите...")
-        ingredients_list = get_ingredients_list(text)
-        context.user_data["last_cart"] = ingredients_list
+        ingredients_list = get_ingredients_list(text)  # получили от гпт список продуктов
+        ingredients_list_with_links = get_links_from_list(ingredients_list, config.BD_path)
+        context.user_data["last_cart"] = ingredients_list_with_links
 
-        await processing_message.edit_text(f"Список продуктов: {ingredients_list}")
+        await processing_message.edit_text(f"Список продуктов: {ingredients_list_with_links}")
 
         keyboard = [
             [InlineKeyboardButton("Да", callback_data='add_to_favorites')],
