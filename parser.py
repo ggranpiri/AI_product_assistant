@@ -56,14 +56,14 @@ def parse_products(category_url):
             name_element = card.select_one('.ProductCard__link')
             link = ''
             if name_element:
-                name = name_element.get('title').strip().replace("NBSP", " ")
+                name = name_element.get('title').strip().encode('utf-8').decode('unicode_escape')
                 link = BASE_URL + name_element['href']
             quantity = card.select_one('.ProductCard__weight')
             if quantity:
                 quantity = quantity.get_text(strip=True)
             price = card.select_one('.Price.Price--md.Price--gray.Price--label')
             if price:
-                price = price.get_text(strip=True).replace("THSP", " ")
+                price = price.get_text(strip=True).encode('utf-8').decode('unicode_escape')
 
             # Добавляем информацию о продукте в список
             products.append({
@@ -74,24 +74,3 @@ def parse_products(category_url):
             })
 
     return products
-
-
-# Основная функция для парсинга всех категорий и записи в JSON
-def parse():
-    print("Парсим категории...")
-    categories = get_categories()
-    data = {}
-
-    for category in categories[:-3]:
-        print(f"Парсим категорию: {category['name']}", end=', ')
-        products = parse_products(category["url"])
-        data[category['name']] = products
-        print(f"обработано {len(products)} продукт")
-
-    with open("vkusvill_products.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-    print(f"Все продукты сохранены в 'vkusvill_products.json'")
-
-
-parse()
