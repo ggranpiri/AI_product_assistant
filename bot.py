@@ -10,6 +10,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 USER_STATE = {}
 FAVORITES = {}
+PURCHASE_HISTORY = {}  # Для хранения истории покупок
 
 def get_date() -> str:
     """Получение текущей даты и времени в формате строки."""
@@ -40,7 +41,8 @@ async def send_main_menu(update: Update, context: CallbackContext, text: str) ->
     """Отправка главного меню с кастомным текстом."""
     keyboard = [
         [InlineKeyboardButton("🍎 Составить корзину", callback_data='shopping')],
-        [InlineKeyboardButton("Просмотреть избранное", callback_data='view_favorites')]
+        [InlineKeyboardButton("Просмотреть избранное", callback_data='view_favorites')],
+        [InlineKeyboardButton("Просмотреть историю", callback_data='view_history')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -74,6 +76,12 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text("Хотите ли вы добавить эту корзину в избранное?", reply_markup=reply_markup)
+
+        # Сохранение в историю
+        if chat_id not in PURCHASE_HISTORY:
+            PURCHASE_HISTORY[chat_id] = []
+        PURCHASE_HISTORY[chat_id].append(ingredients_list)
+
         USER_STATE[chat_id] = 'ask_favorite'
 
     elif state == 'naming_cart':
@@ -119,12 +127,9 @@ async def button(update: Update, context: CallbackContext) -> None:
         USER_STATE[chat_id] = 'naming_cart'
         await query.edit_message_text("Как вы хотите назвать свою корзину?")
     elif query.data == 'back':
-        state = USER_STATE.get(chat_id)
-        if state == 'viewing_favorites':
-            await send_favorites_menu(update, chat_id)
-        else:
-            USER_STATE.pop(chat_id, None)
-            await send_main_menu(update, context, "Могу ли я вам ещё чем-нибудь помочь?")
+        # Всегда сбрасываем состояние и возвращаем главное меню
+        USER_STATE.pop(chat_id, None)
+        await send_main_menu(update, context, "Могу ли я вам ещё чем-нибудь помочь?")
     elif query.data == 'view_favorites':
         USER_STATE[chat_id] = 'viewing_favorites'
         await send_favorites_menu(update, chat_id)
@@ -141,6 +146,9 @@ async def button(update: Update, context: CallbackContext) -> None:
         cart_name = query.data.split(":", 1)[1]
         cart = FAVORITES.get(chat_id, {}).get(cart_name, "Корзина не найдена.")
         await repeat_order_and_reset_state(chat_id, cart_name, cart, context)
+    elif query.data == 'view_history':
+        USER_STATE[chat_id] = 'viewing_history'
+        await send_history_menu(update, chat_id)
 
 async def repeat_order_and_reset_state(chat_id: int, cart_name: str, cart: dict, context: CallbackContext) -> None:
     """Повтор заказа и возврат в главное меню."""
@@ -153,14 +161,37 @@ async def send_favorites_menu(update: Update, chat_id: int) -> None:
     """Отправка меню избранных корзин с кнопками."""
     favorites = FAVORITES.get(chat_id, {})
     if not favorites:
-        await update.callback_query.edit_message_text("Ваш список избранных корзин пуст.")
+        keyboard = [[InlineKeyboardButton("Назад", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.callback_query.edit_message_text(
+            "Ваш список избранных корзин пуст.", reply_markup=reply_markup
+        )
     else:
         keyboard = [
             [InlineKeyboardButton(name, callback_data=f"view_cart:{name}")]
             for name in favorites
         ] + [[InlineKeyboardButton("Назад", callback_data='back')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.callback_query.edit_message_text("Ваши избранные корзины:", reply_markup=reply_markup)
+        await update.callback_query.edit_message_text(
+            "Ваши избранные корзины:", reply_markup=reply_markup
+        )
+
+async def send_history_menu(update: Update, chat_id: int) -> None:
+    """Отправка меню истории покупок с кнопками."""
+    history = PURCHASE_HISTORY.get(chat_id, [])
+    if not history:
+        keyboard = [[InlineKeyboardButton("Назад", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.callback_query.edit_message_text(
+            "Ваша история покупок пуста.", reply_markup=reply_markup
+        )
+    else:
+        history_text = "\n\n".join([f"{i + 1}. {cart}" for i, cart in enumerate(history)])
+        keyboard = [[InlineKeyboardButton("Назад", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.callback_query.edit_message_text(
+            f"История покупок:\n{history_text}", reply_markup=reply_markup
+        )
 
 def main() -> None:
     """Запуск бота."""
@@ -169,10 +200,10 @@ def main() -> None:
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("shopping", shopping))
-    application.add_handler(CallbackQueryHandler(button))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    application.add_handler(CallbackQueryHandler(button))
 
     application.run_polling()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
