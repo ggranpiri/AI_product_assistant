@@ -1,5 +1,5 @@
 import json
-from openai import OpenAI
+from openai import (OpenAI)
 import httpx
 import config
 import logging
