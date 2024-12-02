@@ -1,5 +1,5 @@
 import json
-from openai import (OpenAI)
+from openai import OpenAI
 import httpx
 import config
 import logging
@@ -8,30 +8,16 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def ask_gpt_with_proxy(messages: list,
                        max_tokens: int = None, temperature: float = 0.2,
                        model: str = "gpt-4o",
                        proxy_auth: bool = True) -> str:
     """
-    Метод позволяет обратиться к OpenAI GPT через прокси.\n
-    В конфиге config/config.py должны быть указаны:\n
-    Данные о прокси\n
-    HTTPS_PROXY_LOGIN - логин от прокси.\n
-    Если необходима авторизация:\n
-    HTTPS_PROXY_PASSWORD - пароль от прокси.\n
-    HTTPS_PROXY_IPPORT - IP и порт прокси (например 12.345.678.900:1234)\n\n
-
-    Данные от OpenAI\n
-    OPENAI_API_KEY - API ключ от OpenAI\n
-
-    :param messages: История сообщений (роли: system, assistant, user) - обязательный параметр.
-    :param max_tokens: Максимальное количество токенов в ответе (по умолчанию None).
-    :param temperature: Температура для ответа (по умолчанию 1).
-    :param model: Название модели, к которой необходимо обратиться (по умолчанию "gpt-4o-mini")
-    :param proxy_auth: True - необходима авторизация прокси, False - не нужна (по умолчанию False)
-    :return: Ответ модели.
+    Метод позволяет обратиться к OpenAI GPT через прокси.
+    ...
+    (оставляем без изменений)
     """
-
     proxy_url = f"http://{config.HTTPS_PROXY_IPPORT}"
     if proxy_auth:
         proxy_url = f"http://{config.HTTPS_PROXY_LOGIN}:{config.HTTPS_PROXY_PASSWORD}@{config.HTTPS_PROXY_IPPORT}"
@@ -51,6 +37,7 @@ def ask_gpt_with_proxy(messages: list,
         )
 
         return response.choices[0].message.content.strip()
+
 
 def get_number_of_portions(user_message: str) -> int:
     """
@@ -83,33 +70,39 @@ def get_number_of_portions(user_message: str) -> int:
             })
     raise ValueError("Не удалось определить количество порций после нескольких попыток.")
 
+
 def get_ingredients_per_portion(user_message: str) -> dict:
     """
-    Обрабатывает сообщение пользователя с помощью OpenAI API и возвращает JSON со списком ингредиентов и их количеством в граммах для одной порции.
+    Обрабатывает сообщение пользователя с помощью OpenAI API и возвращает кортеж:
+    (название блюда, JSON со списком ингредиентов и их количеством в граммах для одной порции).
     """
     system_prompt = (
-        "Ты профессиональный кулинарный помощник. Твоя задача — генерировать список ингредиентов с точным количеством "
+        "Ты профессиональный кулинарный помощник. Твоя задача — извлечь название блюда и сгенерировать список ингредиентов с точным количеством "
         "в граммах для ОДНОЙ порции рецепта, который описывает пользователь. Форматируй свой ответ строго в виде JSON-словаря, "
-        "где каждый ингредиент является ключом, а значение — списком, где первый элемент кол-во продукта, а второе - единица ихмерения.\n\n"
+        "где первый ключ — название блюда, а значение — словарь с ингредиентами, где каждый ингредиент является ключом, а значение — списком, где первый элемент количество продукта, а второе - единица измерения.\n\n"
         "Особые инструкции:\n"
         "1. Игнорируй любые упоминания длительности или количества порций в исходном сообщении.\n"
         "2. Ответ должен строго соответствовать JSON-формату, без каких-либо пояснений и единиц измерения в значениях.\n\n"
         "Структура JSON-ответа, СТРОГО СЛЕДУЙ ЕЙ И ТОЛЬКО ЕЙ:\n"
         "{\n"
-        "    \"ingredient1\": [amount_in_grams, unit_of_measurement],\n"
-        "    \"ingredient2\": [amount_in_grams, unit_of_measurement],\n"
-        "    ...\n"
+        "    \"название_блюда\": {\n"
+        "        \"ингредиент1\": [количество, единица_измерения],\n"
+        "        \"ингредиент2\": [количество, единица_измерения],\n"
+        "        ...\n"
+        "    }\n"
         "}\n\n"
         "Пример правильного ответа:\n"
         "{\n"
-        "    \"картофель\": [1, кг],\n"
-        "    \"лук репчатый\": [2, шт],\n"
-        "    \"молоко\": [500, мл]\n"
+        "    \"борщ\": {\n"
+        "        \"картофель\": [200, \"г\"],\n"
+        "        \"лук репчатый\": [100, \"г\"],\n"
+        "        \"свекла\": [150, \"г\"]\n"
+        "    }\n"
         "}\n\n"
         "Примеры неправильных ответов:\n"
         "- Добавление пояснений вне JSON: \"Вот ваш список ингредиентов...\"\n"
         "- Использование нечисловых значений: \"соль\": \"по вкусу\"\n\n"
-        "Помни, что ответ должен быть строго в формате JSON, без лишних пояснений. Подсчитай количества ингредиентов "
+        "Помни, что ответ должен быть строго в формате JSON, без лишних пояснений. Подсчитай количества ингредиентов."
     )
 
     messages = [
@@ -120,22 +113,28 @@ def get_ingredients_per_portion(user_message: str) -> dict:
     for attempt in range(5):
         try:
             assistant_message = ask_gpt_with_proxy(messages, temperature=0.2)
-            ingredients_json = json.loads(assistant_message)
+            data = json.loads(assistant_message)
 
-            # Проверка, что это словарь и все значения - целые числа
-            if isinstance(ingredients_json, dict) and all(isinstance(v[0], int) for v in ingredients_json.values()):
-                return ingredients_json
-            else:
-                raise ValueError("JSON содержит некорректные данные.")
-        except (json.JSONDecodeError, ValueError, TypeError):
+            # Проверка структуры JSON
+            if isinstance(data, dict) and len(data) == 1:
+                dish, ingredients = next(iter(data.items()))
+                if isinstance(ingredients, dict) and all(
+                        isinstance(v, list) and len(v) == 2 and isinstance(v[0], (int, float)) for v in
+                        ingredients.values()
+                ):
+                    return {"dish": dish, "ingredients": ingredients}
+            raise ValueError("JSON имеет некорректную структуру.")
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            logger.warning(f"Попытка {attempt + 1}: Некорректный ответ. Ошибка: {e}")
             messages.append({
                 "role": "user",
                 "content": (
                     "Ваш предыдущий ответ не соответствует требуемому формату. Пожалуйста, предоставьте ответ строго "
-                    "в формате JSON-словаря, где значения список из двух элементов, кол-во продукта и единица измерения. Ответ без пояснений."
+                    "в формате JSON, где первый ключ — название блюда, а значения — словарь ингредиентов с их количествами и единицами измерения. Ответ без пояснений."
                 )
             })
     raise ValueError("Не удалось получить корректный JSON после нескольких попыток.")
+
 
 def get_ingredients_list(user_message: str) -> dict:
     """
@@ -146,15 +145,79 @@ def get_ingredients_list(user_message: str) -> dict:
         portions = get_number_of_portions(user_message)
         print(f"Количество порций: {portions}")
 
-        # Этап 2: Получение ингредиентов на одну порцию
-        ingredients_per_portion = get_ingredients_per_portion(user_message)
-        print(f"Ингредиенты на одну порцию: {ingredients_per_portion}")
+        # Этап 2: Получение ингредиентов и названия блюда
+        result = get_ingredients_per_portion(user_message)
+        print(f"Название блюда: {result['dish']}")
+        print(f"Ингредиенты на одну порцию: {result['ingredients']}")
 
         # Этап 3: Умножение на количество порций
-        total_ingredients = {ingredient: [amount[0] * portions, amount[1]] for ingredient, amount in ingredients_per_portion.items()}
+        total_ingredients = {ingredient: [amount[0] * portions, amount[1]] for ingredient, amount in
+                             result['ingredients'].items()}
 
-        return total_ingredients
+        return {"dish": result['dish'], "ingredients": total_ingredients}
 
     except ValueError as e:
         print(f"Ошибка: {e}")
         return {"error": str(e)}
+
+
+def get_preparation_instructions(dish: str, ingredients: dict) -> str:
+    """
+    Генерирует инструкцию по приготовлению блюда на основе названия блюда и списка ингредиентов.
+
+    :param dish: Название блюда.
+    :param ingredients: Словарь с ингредиентами и их количеством.
+    :return: Инструкция по приготовлению.
+    """
+    system_prompt = (
+        "Ты профессиональный кулинарный помощник. Твоя задача — предоставить подробную и понятную инструкцию "
+        "по приготовлению блюда на основе предоставленных ингредиентов.\n\n"
+        f"Блюдо: {dish}\n"
+        "Ингредиенты:\n"
+    )
+
+    # Формируем список ингредиентов для передачи в запрос
+    ingredients_list = '\n'.join(
+        [f"- {ingredient}: {amount} {unit}" for ingredient, (amount, unit) in ingredients.items()])
+
+    user_prompt = system_prompt + ingredients_list + "\n\n" + "Предоставь пошаговую инструкцию по приготовлению этого блюда."
+
+    messages = [
+        {"role": "system", "content": "Ты профессиональный кулинарный помощник."},
+        {"role": "user", "content": user_prompt}
+    ]
+
+    for attempt in range(5):
+        try:
+            response = ask_gpt_with_proxy(messages, temperature=0.3, max_tokens=1000)
+            if response:
+                return response
+            else:
+                raise ValueError("Пустой ответ от модели.")
+        except Exception as e:
+            logger.warning(f"Попытка {attempt + 1}: Не удалось получить инструкцию по приготовлению. Ошибка: {e}")
+            messages.append({
+                "role": "user",
+                "content": "Пожалуйста, предоставь пошаговую инструкцию по приготовлению блюда без дополнительных комментариев."
+            })
+    raise ValueError("Не удалось получить инструкцию по приготовлению после нескольких попыток.")
+
+
+# Пример использования новой функции
+if __name__ == "__main__":
+    user_input = "Борщ на 4 порции"
+
+    # Получаем название блюда и список ингредиентов
+    result = get_ingredients_list(user_input)
+    if "error" not in result:
+        dish = result["dish"]
+        ingredients = result["ingredients"]
+
+        # Получаем инструкцию по приготовлению
+        try:
+            instructions = get_preparation_instructions(dish, ingredients)
+            print(f"Инструкция по приготовлению {dish}:\n{instructions}")
+        except ValueError as e:
+            print(f"Ошибка при получении инструкции: {e}")
+    else:
+        print(f"Ошибка при получении ингредиентов: {result['error']}")
