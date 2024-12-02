@@ -167,14 +167,15 @@ def get_links_from_list(products_needed, json_file):
     for category, products in database.items():
         for product in products:
             product_name = product.get("name", "").lower()
-            if len(product_name.split()) > 3:
-                continue
 
             # Проверяем, содержится ли продукт в списке нужных
             for needed_product, details in products_needed.items():
                 needed_name = needed_product.lower()
                 needed_quantity = details[0]  # Необходимое количество
                 needed_unit = details[1]  # Единица измерения
+
+                if len(needed_name.split()) > len(product_name.split()) or len(product_name.split()) - len(needed_name.split()) > 3:
+                    continue
 
                 if all(word in product_name.split() for word in needed_name.split()):
                     try:
