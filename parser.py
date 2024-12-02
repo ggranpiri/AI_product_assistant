@@ -58,14 +58,14 @@ def parse_products(category_url):
             name_element = card.select_one('.ProductCard__link')
             link = ''
             if name_element:
-                name = name_element.get('title').strip().encode('utf-8').decode('unicode_escape')
+                name = re.sub(r'[^a-zA-Z0-9а-яА-ЯёЁ]', ' ', name_element.get('title').strip())
                 link = BASE_URL + name_element['href']
             quantity = card.select_one('.ProductCard__weight')
             if quantity:
-                quantity = quantity.get_text(strip=True)
+                quantity = re.sub(r'[^a-zA-Z0-9а-яА-ЯёЁ]', ' ', quantity.get_text(strip=True))
             price = card.select_one('.Price.Price--md.Price--gray.Price--label')
             if price:
-                price = price.get_text(strip=True).encode('utf-8').decode('unicode_escape')
+                price = re.sub(r'[^a-zA-Z0-9а-яА-ЯёЁ]', ' ', price.get_text(strip=True))
 
             # Добавляем информацию о продукте в список
             products.append({
@@ -79,11 +79,34 @@ def parse_products(category_url):
 
 
 # Основная функция для парсинга всех категорий и записи в JSON
+good_category = {
+    "Овощи, фрукты, ягоды, зелень",
+    "Хлеб и выпечка",
+    "Выпекаем сами",
+    "Молочные продукты, яйцо",
+    "Мясо, птица",
+    "Рыба, икра и морепродукты",
+    "Колбаса, сосиски, деликатесы",
+    "Замороженные продукты",
+    "Сыры",
+    "Напитки",
+    "Орехи, чипсы и снеки",
+    "Вегетарианское и постное",
+    "Крупы, макароны, мука",
+    "Алкоголь",
+    "Консервация",
+    "Чай и кофе",
+    "Масла, соусы, специи, сахар и соль"
+}
+
+
 def parse_product_from_vv():
     categories = get_categories()
     data = {}
 
-    for category in categories[5:]:
+    for category in categories:
+        if category["name"] not in good_category:
+            continue
         print(f"Парсим категорию: {category['name']}", end='... ')
         try:
             products = parse_products(category["url"])
@@ -101,11 +124,11 @@ def parse_product_from_vv():
 def calculate_packs_needed(quantity_needed, unit_needed, pack_quantity, pack_unit):
     # Словарь для конверсии единиц измерения
     unit_conversion = {
-        "г": 1,         # граммы
-        "кг": 1000,     # килограммы
-        "мл": 1,        # миллилитры
-        "л": 1000,      # литры
-        "шт": 1         # штуки
+        "г": 1,  # граммы
+        "кг": 1000,  # килограммы
+        "мл": 1,  # миллилитры
+        "л": 1000,  # литры
+        "шт": 1  # штуки
     }
 
     # Проверяем, есть ли такие единицы измерения в словаре
@@ -144,6 +167,8 @@ def get_links_from_list(products_needed, json_file):
     for category, products in database.items():
         for product in products:
             product_name = product.get("name", "").lower()
+            if len(product_name.split()) > 3:
+                continue
 
             # Проверяем, содержится ли продукт в списке нужных
             for needed_product, details in products_needed.items():
@@ -210,5 +235,3 @@ products_list = {
     'чеснок': [70, 'г'],
     'растительное масло': [140, 'мл']
 }
-
-
