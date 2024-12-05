@@ -65,7 +65,7 @@ def parse_products(category_url):
                 quantity = re.sub(r'[^a-zA-Z0-9а-яА-ЯёЁ]', ' ', quantity.get_text(strip=True))
             price = card.select_one('.Price.Price--md.Price--gray.Price--label')
             if price:
-                price = re.sub(r'[^a-zA-Z0-9а-яА-ЯёЁ]', ' ', price.get_text(strip=True))
+                price = int(re.sub(r'[^0-9]', '', price.get_text(strip=True)))
 
             # Добавляем информацию о продукте в список
             products.append({
@@ -74,7 +74,6 @@ def parse_products(category_url):
                 "quantity": quantity,
                 "price": price
             })
-
     return products
 
 
@@ -121,32 +120,34 @@ def parse_product_from_vv():
     print(f"Все продукты сохранены во {BD_path}")
 
 
-def calculate_packs_needed(quantity_needed, unit_needed, pack_quantity, pack_unit):
-    # Словарь для конверсии единиц измерения
+def convert_to_grams(quantity, unit):
+    # Словарь для конверсии в граммы
     unit_conversion = {
-        "г": 1,  # граммы
-        "кг": 1000,  # килограммы
-        "мл": 1,  # миллилитры
-        "л": 1000,  # литры
-        "шт": 1  # штуки
+        "г": 1,
+        "кг": 1000,
+        "мл": 1,  # Примерно, для воды 1 мл = 1 г
+        "л": 1000,
+        "шт": 1  # Если штуки нужно пересчитывать, добавьте дополнительную логику
     }
+    # Проверка наличия единицы измерения
+    if unit not in unit_conversion:
+        return -1  # Неизвестная единица измерения
+    return quantity * unit_conversion[unit]
 
-    # Проверяем, есть ли такие единицы измерения в словаре
-    if unit_needed not in unit_conversion or pack_unit not in unit_conversion:
-        return -1  # Не удалось сопоставить
 
-    # Приводим оба значения к единой базовой единице (например, граммы или миллилитры)
-    base_needed = quantity_needed * unit_conversion[unit_needed]
-    base_pack = pack_quantity * unit_conversion[pack_unit]
+def calculate_packs_needed(quantity_needed, unit_needed, pack_quantity, pack_unit):
+    # Переводим нужное количество и количество в упаковке в граммы
+    base_needed = convert_to_grams(quantity_needed, unit_needed)
+    base_pack = convert_to_grams(pack_quantity, pack_unit)
 
-    # Проверяем, возможно ли использование упаковки
-    if base_pack == 0 or base_needed == 0:
+    # Проверяем корректность преобразования
+    if base_needed == -1 or base_pack == -1 or base_pack == 0:
         return -1  # Невозможно сопоставить
 
     # Считаем количество упаковок
     packs_needed = base_needed / base_pack
 
-    # Возвращаем количество упаковок, округлённое вверх до целого числа
+    # Возвращаем округлённое вверх значение
     return int(packs_needed) if packs_needed.is_integer() else int(packs_needed) + 1
 
 
@@ -174,44 +175,47 @@ def get_links_from_list(products_needed, json_file):
                 needed_quantity = details[0]  # Необходимое количество
                 needed_unit = details[1]  # Единица измерения
 
-                if len(needed_name.split()) > len(product_name.split()) or len(product_name.split()) - len(needed_name.split()) > 3:
+                if len(needed_name.split()) > len(product_name.split()):
                     continue
 
                 if all(word in product_name.split() for word in needed_name.split()):
-                    try:
-                        product_price = 0
-                        for i in product.get("price", ""):
-                            if i.isnumeric():
-                                product_price = product_price * 10 + int(i)
-                            else:
-                                break
-                    except:
-                        product_price = 1e9
+                    product_price = product["price"]
 
                     try:
+                        if not product["quantity"]:
+                            product["quantity"] = "1 кг"
+
                         product_quantity = int(product["quantity"].split()[0])
                         product_unit = product["quantity"].split()[1]
                     except:
                         continue
 
+                    # Переводим количество продукта в граммы
+                    product_weight_in_grams = convert_to_grams(product_quantity, product_unit)
+                    if product_weight_in_grams == -1:
+                        continue
+
+                    # Стоимость за грамм
+                    cost_per_gram = product_price / product_weight_in_grams
+
                     # Расчёт необходимого количества упаковок
                     packs_needed = calculate_packs_needed(needed_quantity, needed_unit, product_quantity, product_unit)
-
                     if packs_needed == -1:
                         continue
 
                     # Общая стоимость для текущего продукта
                     total_price = product_price * packs_needed
 
-                    # Оптимизация: выбираем продукт с минимальной общей стоимостью
+                    # Оптимизация: выбираем продукт с минимальной стоимостью за грамм
                     existing_product = next((p for p in result if needed_name in p["name"].lower()), None)
-                    if not existing_product or total_price < existing_product.get("total_price", float('inf')):
+                    if not existing_product or cost_per_gram < existing_product.get("cost_per_gram", float('inf')):
                         if existing_product:
                             result[category].remove(existing_product)
                         result.append({
                             **product,
                             "packs_needed": packs_needed,
-                            "total_price": total_price
+                            "total_price": total_price,
+                            "cost_per_gram": cost_per_gram
                         })
                     del products_needed[needed_product]
                     break
@@ -220,6 +224,7 @@ def get_links_from_list(products_needed, json_file):
 
 
 products_list = {
+    'соль': [70, 'г'],
     'свекла': [2100, 'г'],
     'капуста': [1400, 'г'],
     'картофель': [1400, 'г'],
@@ -228,7 +233,6 @@ products_list = {
     'томатная паста': [420, 'г'],
     'говядина': [2100, 'г'],
     'вода': [7000, 'мл'],
-    'соль': [70, 'г'],
     'сахар': [70, 'г'],
     'уксус': [70, 'мл'],
     'лавровый лист': [14, 'шт'],
@@ -236,3 +240,5 @@ products_list = {
     'чеснок': [70, 'г'],
     'растительное масло': [140, 'мл']
 }
+
+print(*get_links_from_list(products_list, "vkusvill_products.json"), sep='\n')
