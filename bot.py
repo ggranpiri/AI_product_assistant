@@ -12,6 +12,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 USER_STATE = {}
 FAVORITES = {}
 PURCHASE_HISTORY = {}
+PREV_MESSAGE = {}
 
 MAX_RETRIES = 3
 
@@ -123,6 +124,7 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
         PURCHASE_HISTORY[chat_id].append(ingredients_list_with_links)
 
         USER_STATE[chat_id] = 'ask_favorite'
+        PREV_MESSAGE[chat_id] = formatted_list
 
     elif state == 'naming_cart':
         if not text:
@@ -185,10 +187,7 @@ async def button(update: Update, context: CallbackContext) -> None:
         cart_name = query.data.split(':', 1)[1]
         favorite_cart = FAVORITES.get(chat_id, {}).get(cart_name, [])
         total_price = sum(item.get('price', 0) for item in favorite_cart)
-        formatted_cart = "\n".join(
-            [f"{i + 1}. {item['name']} - [🔗 Ссылка]({item['link']}) (Цена: {item['price']} ₽)" for i, item in
-             enumerate(favorite_cart)]
-        )
+        formatted_cart = PREV_MESSAGE[chat_id]
 
         keyboard = [
             [InlineKeyboardButton("Удалить корзину", callback_data=f"delete_cart:{cart_name}")],
