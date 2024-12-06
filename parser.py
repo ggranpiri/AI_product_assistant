@@ -119,7 +119,7 @@ def parse_product_from_vv():
 
     print(f"Все продукты сохранены во {BD_path}")
 
-
+# parse_product_from_vv()
 def convert_to_grams(quantity, unit):
     # Словарь для конверсии в граммы
     unit_conversion = {
