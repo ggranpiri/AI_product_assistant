@@ -82,7 +82,8 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
         ingredients_list = None
         while retries < MAX_RETRIES and not ingredients_list:
             try:
-                ingredients_list = get_ingredients_list(text)
+                ans = get_ingredients_list(text)
+                dish, ingredients_list = ans["dish"], ans["ingredients"]
             except Exception as e:
                 print(f"Ошибка: {e}")
             retries += 1
@@ -242,6 +243,7 @@ async def send_favorites_menu(update: Update, context: CallbackContext) -> None:
         await update.callback_query.edit_message_text("Ваши избранные корзины:", reply_markup=reply_markup)
     elif update.message:
         await update.message.reply_text("Ваши избранные корзины:", reply_markup=reply_markup)
+
 
 def main() -> None:
     """Основной запуск бота."""
