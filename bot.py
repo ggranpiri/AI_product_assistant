@@ -223,7 +223,10 @@ async def send_favorites_menu(update: Update, context: CallbackContext) -> None:
     favorite_carts = FAVORITES.get(chat_id, {})
 
     if not favorite_carts:
-        await update.callback_query.edit_message_text("У вас пока нет избранных корзин.")
+        if update.callback_query:
+            await update.callback_query.edit_message_text("У вас пока нет избранных корзин.")
+        elif update.message:
+            await update.message.reply_text("У вас пока нет избранных корзин.")
         return
 
     keyboard = [[InlineKeyboardButton(cart_name, callback_data=f"view_cart:{cart_name}")]
@@ -231,8 +234,10 @@ async def send_favorites_menu(update: Update, context: CallbackContext) -> None:
     keyboard.append([InlineKeyboardButton("Назад", callback_data='back')])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.callback_query.edit_message_text("Ваши избранные корзины:", reply_markup=reply_markup)
-
+    if update.callback_query:
+        await update.callback_query.edit_message_text("Ваши избранные корзины:", reply_markup=reply_markup)
+    elif update.message:
+        await update.message.reply_text("Ваши избранные корзины:", reply_markup=reply_markup)
 
 def main() -> None:
     """Основной запуск бота."""
@@ -242,6 +247,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(CallbackQueryHandler(button))
     application.add_handler(CommandHandler("shopping", shopping))
+    application.add_handler(CommandHandler("view_favorites", send_favorites_menu))  # Добавлен хендлер
 
     application.run_polling()
 
