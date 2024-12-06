@@ -1,7 +1,4 @@
-import asyncio
 from datetime import datetime
-from time import sleep
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, filters
 import config
