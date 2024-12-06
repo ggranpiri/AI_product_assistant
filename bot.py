@@ -51,7 +51,6 @@ async def send_main_menu(update: Update, context: CallbackContext, text: str) ->
         [InlineKeyboardButton("🍎 Составить корзину", callback_data='shopping')]
     ]
 
-    # Добавляем кнопку "Просмотреть избранное" только если есть корзины
     if chat_id in FAVORITES and FAVORITES[chat_id]:
         keyboard.append([InlineKeyboardButton("Просмотреть избранное", callback_data='view_favorites')])
 
@@ -98,13 +97,14 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
             )
             return
 
+        total_price = sum(item.get('price', 0) for item in ingredients_list_with_links)
         formatted_list = "\n".join(
-            [f"{i + 1}. {item['name']} - [🔗 Ссылка]({item['link']})" for i, item in
+            [f"{i + 1}. {item['name']} - [🔗 Ссылка]({item['link']}) (Цена: {item['price']} ₽)" for i, item in
              enumerate(ingredients_list_with_links)]
         )
 
         await processing_message.edit_text(
-            f"Ваш список продуктов готов:\n\n{formatted_list}",
+            f"Ваш список продуктов готов:\n\n{formatted_list}\n\nИтоговая стоимость: {total_price} ₽",
             parse_mode="Markdown"
         )
 
@@ -181,8 +181,10 @@ async def button(update: Update, context: CallbackContext) -> None:
     elif query.data.startswith('view_cart:'):
         cart_name = query.data.split(':', 1)[1]
         favorite_cart = FAVORITES.get(chat_id, {}).get(cart_name, [])
+        total_price = sum(item.get('price', 0) for item in favorite_cart)
         formatted_cart = "\n".join(
-            [f"{i + 1}. {item['name']} - [🔗 Ссылка]({item['link']})" for i, item in enumerate(favorite_cart)]
+            [f"{i + 1}. {item['name']} - [🔗 Ссылка]({item['link']}) (Цена: {item['price']} ₽)" for i, item in
+             enumerate(favorite_cart)]
         )
 
         keyboard = [
@@ -192,7 +194,7 @@ async def button(update: Update, context: CallbackContext) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await query.edit_message_text(
-            f"Содержимое корзины '{cart_name}':\n\n{formatted_cart}",
+            f"Содержимое корзины '{cart_name}':\n\n{formatted_cart}\n\nИтоговая стоимость: {total_price} ₽",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
@@ -217,30 +219,30 @@ async def send_favorites_menu(update: Update, context: CallbackContext) -> None:
     """Отправка меню с избранными корзинами."""
     chat_id = update.effective_chat.id
     favorite_carts = FAVORITES.get(chat_id, {})
-    if favorite_carts:
-        keyboard = [
-            [InlineKeyboardButton(cart_name, callback_data=f"view_cart:{cart_name}")] for cart_name in favorite_carts
-        ]
-        keyboard.append([InlineKeyboardButton("Назад", callback_data='back')])
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        if update.callback_query:
-            await update.callback_query.edit_message_text("Выберите корзину из избранного:", reply_markup=reply_markup)
-        elif update.message:
-            await update.message.reply_text("Выберите корзину из избранного:", reply_markup=reply_markup)
-    else:
-        await send_main_menu(update, context, "У вас нет сохранённых корзин.")
+
+    if not favorite_carts:
+        await update.callback_query.edit_message_text("У вас пока нет избранных корзин.")
+        return
+
+    keyboard = [[InlineKeyboardButton(cart_name, callback_data=f"view_cart:{cart_name}")]
+                for cart_name in favorite_carts]
+    keyboard.append([InlineKeyboardButton("Назад", callback_data='back')])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.edit_message_text("Ваши избранные корзины:", reply_markup=reply_markup)
 
 
 def main() -> None:
-    """Запуск бота."""
+    """Основной запуск бота."""
     application = Application.builder().token(config.TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    application.add_handler(CallbackQueryHandler(button))
+    application.add_handler(CommandHandler("shopping", shopping))
 
     application.run_polling()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
