@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, filters
 import config
@@ -181,9 +182,13 @@ async def button(update: Update, context: CallbackContext) -> None:
         cart_name = query.data.split(':', 1)[1]
         favorite_cart = FAVORITES.get(chat_id, {}).get(cart_name, [])
         formatted_cart = "\n".join(
-            [f"{i + 1}. {item['name']} - [🔗 Ссылка]({item['link']})" for i, item in enumerate(favorite_cart)])
+            [f"{i + 1}. {item['name']} - [🔗 Ссылка]({item['link']})" for i, item in enumerate(favorite_cart)]
+        )
 
-        keyboard = [[InlineKeyboardButton("Назад", callback_data='view_favorites')]]
+        keyboard = [
+            [InlineKeyboardButton("Удалить корзину", callback_data=f"delete_cart:{cart_name}")],
+            [InlineKeyboardButton("Назад", callback_data='view_favorites')]
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await query.edit_message_text(
@@ -191,6 +196,11 @@ async def button(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
+    elif query.data.startswith('delete_cart:'):
+        cart_name = query.data.split(':', 1)[1]
+        if chat_id in FAVORITES and cart_name in FAVORITES[chat_id]:
+            del FAVORITES[chat_id][cart_name]
+        await send_favorites_menu(update, context)
     elif query.data == 'choose_another_name':
         USER_STATE[chat_id] = 'naming_cart'
         await query.edit_message_text("Введите новое имя для корзины.")
@@ -218,25 +228,19 @@ async def send_favorites_menu(update: Update, context: CallbackContext) -> None:
         elif update.message:
             await update.message.reply_text("Выберите корзину из избранного:", reply_markup=reply_markup)
     else:
-        # Отправляем сообщение о пустом избранном
-        if update.callback_query:
-            await update.callback_query.edit_message_text(
-                "Ваши избранные корзины пусты. Добавьте корзину в избранное для дальнейшего использования.")
-        elif update.message:
-            await update.message.reply_text(
-                "Ваши избранные корзины пусты. Добавьте корзину в избранное для дальнейшего использования.")
+        await send_main_menu(update, context, "У вас нет сохранённых корзин.")
+
 
 def main() -> None:
-    """Основная функция."""
+    """Запуск бота."""
     application = Application.builder().token(config.TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(CallbackQueryHandler(button))
-    application.add_handler(CallbackQueryHandler(shopping, pattern='^shopping$'))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
