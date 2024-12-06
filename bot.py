@@ -98,13 +98,16 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
             return
 
         total_price = sum(item.get('price', 0) for item in ingredients_list_with_links)
-        formatted_list = "\n".join(
-            [f"{i + 1}. {item['name']} - [🔗 Ссылка]({item['link']}) (Цена: {item['price']} ₽)" for i, item in
-             enumerate(ingredients_list_with_links)]
-        )
-
+        formatted_list = ""
+        for i, key in enumerate(ingredients_list.keys()):
+            item = ingredients_list_with_links[i]
+            if not item:
+                formatted_list += f"{i + 1}. {key} - не удалось найти\n"
+            else:
+                formatted_list += f"{i + 1}. [{item['name']}]({item['link']}) - {item['packs_needed']} шт, {item['price']} ₽\n"
+        print(formatted_list)
         await processing_message.edit_text(
-            f"Ваш список продуктов готов:\n\n{formatted_list}\n\nИтоговая стоимость: {total_price} ₽",
+            f"Ваш список продуктов готов:\n{formatted_list}\n\nИтоговая стоимость: {total_price} ₽",
             parse_mode="Markdown"
         )
 
