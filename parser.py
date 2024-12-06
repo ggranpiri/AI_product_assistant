@@ -162,20 +162,19 @@ def get_links_from_list(products_needed, json_file):
     with open(json_file, "r", encoding="utf-8") as f:
         database = json.load(f)
 
-    result = []
+    result = [{} for _ in range(len(products_needed))]
 
     # Перебираем категории в базе данных
     for category, products in database.items():
         for product in products:
             product_name = product.get("name", "").lower()
-
             # Проверяем, содержится ли продукт в списке нужных
-            for needed_product, details in products_needed.items():
+            for i, [needed_product, details] in enumerate(products_needed.items()):
                 needed_name = needed_product.lower()
                 needed_quantity = details[0]  # Необходимое количество
                 needed_unit = details[1]  # Единица измерения
 
-                if len(needed_name.split()) > len(product_name.split()):
+                if len(product_name.split()) - len(needed_name.split()) > 3:
                     continue
 
                 if all(word in product_name.split() for word in needed_name.split()):
@@ -207,19 +206,18 @@ def get_links_from_list(products_needed, json_file):
                     total_price = product_price * packs_needed
 
                     # Оптимизация: выбираем продукт с минимальной стоимостью за грамм
-                    existing_product = next((p for p in result if needed_name in p["name"].lower()), None)
-                    if not existing_product or cost_per_gram < existing_product.get("cost_per_gram", float('inf')):
-                        if existing_product:
-                            result[category].remove(existing_product)
-                        result.append({
+
+                    if not result[i] or cost_per_gram < result[i].get("cost_per_gram", float('inf')):
+                        if result[i]:
+                            result[i] = {}
+                        result[i] = {
                             **product,
                             "packs_needed": packs_needed,
                             "total_price": total_price,
                             "cost_per_gram": cost_per_gram
-                        })
-                    del products_needed[needed_product]
+                        }
                     break
-
+    print(*result, sep='\n')
     return result
 
 
@@ -241,4 +239,4 @@ products_list = {
     'растительное масло': [140, 'мл']
 }
 
-print(*get_links_from_list(products_list, "vkusvill_products.json"), sep='\n')
+#get_links_from_list(products_list, "vkusvill_products.json")
