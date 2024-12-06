@@ -1,11 +1,15 @@
-from datetime import datetime
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, filters
-import config
 from gpt_request import get_ingredients_list
-from parser import get_links_from_list
+
+import config
+
+from parser.match_product import get_links_from_list
+from parser.update_bd import auto_update_bd
+
 import logging
+import threading
+from datetime import datetime
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
@@ -250,6 +254,10 @@ def main() -> None:
     application.add_handler(CommandHandler("view_favorites", send_favorites_menu))  # Добавлен хендлер
 
     application.run_polling()
+
+    """Запуск автообновления бд"""
+    update_thread = threading.Thread(target=auto_update_bd)
+    update_thread.start()
 
 
 if __name__ == '__main__':
