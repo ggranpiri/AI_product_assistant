@@ -80,13 +80,13 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
 
         retries = 0
         ingredients_list = None
-        while retries < MAX_RETRIES and not ingredients_list:
+        if not ingredients_list:
             try:
                 ans = get_ingredients_list(text)
                 dish, ingredients_list = ans["dish"], ans["ingredients"]
             except Exception as e:
-                print(f"Ошибка: {e}")
-            retries += 1
+                print(f"Ошибка: Не удалось получить корректный JSON после нескольких попыток.")
+
 
         if not ingredients_list:
             await processing_message.edit_text(

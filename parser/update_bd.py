@@ -1,6 +1,6 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
 from AI_product_assistant.config import UPDATE_BD_TIME
-from parse_bd import parse_product_from_vv
+from AI_product_assistant.parser.parse_bd import parse_product_from_vv
 
 
 def auto_update_bd():

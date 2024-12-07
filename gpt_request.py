@@ -1,7 +1,7 @@
 import json
 from openai import OpenAI
 import httpx
-import config
+import AI_product_assistant.config
 import logging
 
 # Настройка логирования
@@ -18,13 +18,13 @@ def ask_gpt_with_proxy(messages: list,
     ...
     (оставляем без изменений)
     """
-    proxy_url = f"http://{config.HTTPS_PROXY_IPPORT}"
+    proxy_url = f"http://{AI_product_assistant.config.HTTPS_PROXY_IPPORT}"
     if proxy_auth:
-        proxy_url = f"http://{config.HTTPS_PROXY_LOGIN}:{config.HTTPS_PROXY_PASSWORD}@{config.HTTPS_PROXY_IPPORT}"
+        proxy_url = f"http://{AI_product_assistant.config.HTTPS_PROXY_LOGIN}:{AI_product_assistant.config.HTTPS_PROXY_PASSWORD}@{AI_product_assistant.config.HTTPS_PROXY_IPPORT}"
 
     with httpx.Client(proxy=proxy_url) as httpx_client:
         gpt_client = OpenAI(
-            api_key=config.OPENAI_API_KEY,
+            api_key=AI_product_assistant.config.OPENAI_API_KEY,
             http_client=httpx_client
         )
 
