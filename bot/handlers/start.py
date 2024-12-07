@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext
-from bot.utils.logger import log
-from bot.handlers.buttons import send_main_menu
+from AI_product_assistant.bot.utils.logger import log
+from AI_product_assistant.bot.handlers.buttons import send_main_menu
 
 async def start(update: Update, context: CallbackContext) -> None:
     log(update)
