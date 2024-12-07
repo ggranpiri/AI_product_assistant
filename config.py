@@ -7,3 +7,6 @@ OPENAI_API_KEY = ""
 TOKEN = ''
 
 BD_path = ""
+
+# время обновление бд [часы, минусы]
+UPDATE_BD_TIME = (20, 00)
