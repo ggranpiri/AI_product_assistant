@@ -78,6 +78,7 @@ def parse_products_in_category(category_url):
     return products
 
 
+
 # Основная функция для парсинга всех категорий и записи в JSON
 good_category = {
     "Овощи, фрукты, ягоды, зелень",
