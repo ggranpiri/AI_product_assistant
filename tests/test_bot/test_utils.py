@@ -4,6 +4,7 @@ from datetime import datetime
 from AI_product_assistant.bot.utils.data_time import get_date
 from AI_product_assistant.bot.utils.logger import log
 
+
 # Тест для функции get_date
 def test_get_date():
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

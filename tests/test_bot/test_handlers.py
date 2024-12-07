@@ -9,7 +9,6 @@ from AI_product_assistant.bot.states.user_states import FAVORITES
 from AI_product_assistant.bot.handlers.buttons import send_main_menu
 
 
-
 @pytest.mark.asyncio
 async def test_send_main_menu_with_favorites():
     update = MagicMock(Update)

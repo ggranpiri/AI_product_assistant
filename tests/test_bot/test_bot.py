@@ -2,6 +2,7 @@ import pytest
 import pytest_asyncio
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+
 @pytest_asyncio.fixture
 async def bot_client():
     class MockBotClient:
