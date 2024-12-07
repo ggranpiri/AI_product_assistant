@@ -2,7 +2,7 @@ import logging
 
 
 def log(update):
-    from AI_product_assistant.bot.utils.data_time import get_date
+    from bot.utils.data_time import get_date
     if update.message:
         user = update.message.from_user
         text = update.message.text

@@ -1,10 +1,11 @@
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
-from AI_product_assistant.bot.handlers.start import start
-from AI_product_assistant.bot.handlers.shopping import shopping
-from AI_product_assistant.bot.handlers.buttons import button
-from AI_product_assistant.bot.handlers.text_message import handle_text
-from AI_product_assistant.bot.handlers.favorites import send_favorites_menu
-from AI_product_assistant.config import TOKEN
+from handlers.start import start
+from handlers.shopping import shopping
+from handlers.buttons import button
+from handlers.text_message import handle_text
+from handlers.favorites import send_favorites_menu
+from config import TOKEN
+
 
 def main():
     application = Application.builder().token(TOKEN).build()
@@ -16,6 +17,7 @@ def main():
     application.add_handler(CommandHandler("view_favorites", send_favorites_menu))
 
     application.run_polling()
+
 
 if __name__ == '__main__':
     main()

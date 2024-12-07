@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
-from AI_product_assistant.bot.states.user_states import USER_STATE, FAVORITES, PREV_MESSAGE
-from AI_product_assistant.bot.handlers.favorites import send_favorites_menu
+from bot.states.user_states import USER_STATE, FAVORITES, PREV_MESSAGE
+from bot.handlers.favorites import send_favorites_menu
 
 async def send_main_menu(update: Update, context: CallbackContext, text: str) -> None:
     """Отправка главного меню с кастомным текстом."""

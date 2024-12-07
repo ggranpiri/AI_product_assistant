@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
-from AI_product_assistant.bot.states.user_states import FAVORITES
+from bot.states.user_states import FAVORITES
 
 async def send_favorites_menu(update: Update, context: CallbackContext) -> None:
     """Отправка меню с избранными корзинами."""
