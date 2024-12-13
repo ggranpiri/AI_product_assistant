@@ -121,3 +121,4 @@ def parse_product_from_vv():
 
     print(f"Все продукты сохранены во {BD_path}")
 
+parse_product_from_vv()

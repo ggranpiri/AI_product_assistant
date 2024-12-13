@@ -1,12 +1,12 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 
-from AI_product_assistant.bot.handlers.buttons import send_main_menu
-from AI_product_assistant.bot.utils.logger import log
-from AI_product_assistant.gpt_request import get_ingredients_list
-from AI_product_assistant.bot.states.user_states import USER_STATE, FAVORITES, PREV_MESSAGE, PURCHASE_HISTORY
-from AI_product_assistant.parser.match_product import get_links_from_list
-from AI_product_assistant.config import BD_path
+from bot.handlers.buttons import send_main_menu
+from bot.utils.logger import log
+from gpt_request import get_ingredients_list
+from bot.states.user_states import USER_STATE, FAVORITES, PREV_MESSAGE, PURCHASE_HISTORY
+from parser.match_product import get_links_from_list
+from config import BD_path
 
 async def handle_text(update: Update, context: CallbackContext) -> None:
     """Обработка текстовых сообщений."""
