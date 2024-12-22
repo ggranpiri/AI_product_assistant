@@ -1,12 +1,12 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from parsers.parse_bd import get_categories, get_total_pages, parse_product_from_vv
+from parser.parse_bd import get_categories, get_total_pages, parse_product_from_vv
 
 
 class TestGetCategories(unittest.TestCase):
 
-    @patch('parsers.parse_bd.requests.get')  # Патчим requests.get
-    @patch('parsers.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
+    @patch('parser.parse_bd.requests.get')  # Патчим requests.get
+    @patch('parser.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
     def test_get_categories(self, mock_soup, mock_get):
         # Мокируем ответ от requests.get
         mock_response = MagicMock()
@@ -31,8 +31,8 @@ class TestGetCategories(unittest.TestCase):
 
 class TestGetCategories(unittest.TestCase):
 
-    @patch('parsers.parse_bd.requests.get')  # Патчим requests.get
-    @patch('parsers.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
+    @patch('parser.parse_bd.requests.get')  # Патчим requests.get
+    @patch('parser.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
     def test_get_categories(self, mock_soup, mock_get):
         # Мокируем ответ от requests.get
         mock_response = MagicMock()
@@ -57,8 +57,8 @@ class TestGetCategories(unittest.TestCase):
 
 class TestGetTotalPages(unittest.TestCase):
 
-    @patch('parsers.parse_bd.requests.get')  # Патчим requests.get
-    @patch('parsers.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
+    @patch('parser.parse_bd.requests.get')  # Патчим requests.get
+    @patch('parser.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
     def test_get_total_pages_multiple(self, mock_soup, mock_get):
         # Мокируем ответ от requests.get
         mock_response = MagicMock()
@@ -78,8 +78,8 @@ class TestGetTotalPages(unittest.TestCase):
         # Проверяем, что функция вернула правильное количество страниц
         self.assertEqual(total_pages, 2)
 
-    @patch('parsers.parse_bd.requests.get')  # Патчим requests.get
-    @patch('parsers.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
+    @patch('parser.parse_bd.requests.get')  # Патчим requests.get
+    @patch('parser.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
     def test_get_total_pages_single(self, mock_soup, mock_get):
         # Мокируем ответ от requests.get (только одна страница)
         mock_response = MagicMock()
@@ -97,8 +97,8 @@ class TestGetTotalPages(unittest.TestCase):
         # Проверяем, что функция вернула 1 страницу
         self.assertEqual(total_pages, 1)
 
-    @patch('parsers.parse_bd.requests.get')  # Патчим requests.get
-    @patch('parsers.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
+    @patch('parser.parse_bd.requests.get')  # Патчим requests.get
+    @patch('parser.parse_bd.BeautifulSoup')  # Патчим BeautifulSoup
     def test_get_total_pages_no_pages(self, mock_soup, mock_get):
         # Мокируем ответ от requests.get (нет страниц)
         mock_response = MagicMock()
@@ -116,8 +116,8 @@ class TestGetTotalPages(unittest.TestCase):
 
 
 class TestParseProductFromVV(unittest.TestCase):
-    @patch("parsers.parse_bd.parse_products_in_category")
-    @patch("parsers.parse_bd.get_categories")
+    @patch("parser.parse_bd.parse_products_in_category")
+    @patch("parser.parse_bd.get_categories")
     def test_parse_product_from_vv(self, mock_get_categories, mock_parse_products):
         # Настройка тестовых данных
         mock_get_categories.return_value = [
