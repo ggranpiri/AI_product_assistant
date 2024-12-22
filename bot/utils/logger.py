@@ -1,6 +1,5 @@
 import logging
 
-
 def log(update):
     from bot.utils.data_time import get_date
     if update.message:

@@ -7,7 +7,8 @@ async def send_main_menu(update: Update, context: CallbackContext, text: str) ->
     """Отправка главного меню с кастомным текстом."""
     chat_id = update.effective_chat.id
     keyboard = [
-        [InlineKeyboardButton("🍎 Составить корзину", callback_data='shopping')]
+        [InlineKeyboardButton("🍎 Составить корзину", callback_data='shopping')],
+        [InlineKeyboardButton("📝 Составить рецепт", callback_data='recipe')]  # Добавляем кнопку для рецепта
     ]
 
     if chat_id in FAVORITES and FAVORITES[chat_id]:
@@ -21,7 +22,6 @@ async def send_main_menu(update: Update, context: CallbackContext, text: str) ->
         await update.message.reply_text(text, reply_markup=reply_markup)
 
 
-
 async def button(update: Update, context: CallbackContext) -> None:
     """Обработка нажатий кнопок."""
     query = update.callback_query
@@ -31,6 +31,10 @@ async def button(update: Update, context: CallbackContext) -> None:
     if query.data == 'shopping':
         USER_STATE[chat_id] = 'shopping'
         await query.edit_message_text("Опишите, что хотите приготовить или введите список продуктов.")
+    elif query.data == 'recipe':
+        USER_STATE[chat_id] = 'recipe'
+        await query.edit_message_text(
+            "Опишите, какое блюдо вы хотите приготовить или введите список продуктов")
     elif query.data == 'add_to_favorites':
         USER_STATE[chat_id] = 'naming_cart'
         await query.edit_message_text("Как вы хотите назвать свою корзину?")
@@ -66,4 +70,13 @@ async def button(update: Update, context: CallbackContext) -> None:
         await send_main_menu(update, context, "Могу ли я вам ещё чем-нибудь помочь?")
     elif query.data == 'view_favorites':
         await send_favorites_menu(update, context)
+    elif query.data == 'help':
+        help_text = (
+            "Вот что я могу сделать:\n"
+            "1. 🍎 /shopping Составить корзину - помогу подобрать продукты.\n"
+            "2. 📝 /recipe Составить рецепт - помогу создать рецепт на основе продуктов.\n"
+            "3. /view_favorites Просмотреть избранное - просмотрите сохранённые корзины.\n"
+            "4. ❓ /help - Помощь.\n"
+        )
+        await query.edit_message_text(help_text)
 

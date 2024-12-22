@@ -163,7 +163,7 @@ def get_ingredients_list(user_message: str) -> dict:
 
 def get_preparation_instructions(dish: str, ingredients: dict) -> str:
     """
-    Генерирует инструкцию по приготовлению блюда на основе названия блюда и списка ингредиентов.
+    Генерирует инструкцию по приготовлению блюда на основе названия блюда.
 
     :param dish: Название блюда.
     :param ingredients: Словарь с ингредиентами и их количеством.
@@ -171,16 +171,12 @@ def get_preparation_instructions(dish: str, ingredients: dict) -> str:
     """
     system_prompt = (
         "Ты профессиональный кулинарный помощник. Твоя задача — предоставить подробную и понятную инструкцию "
-        "по приготовлению блюда на основе предоставленных ингредиентов.\n\n"
+        "по приготовлению блюда на основе названия блюда.\n\n"
         f"Блюдо: {dish}\n"
         "Ингредиенты:\n"
     )
 
-    # Формируем список ингредиентов для передачи в запрос
-    ingredients_list = '\n'.join(
-        [f"- {ingredient}: {amount} {unit}" for ingredient, (amount, unit) in ingredients.items()])
-
-    user_prompt = system_prompt + ingredients_list + "\n\n" + "Предоставь пошаговую инструкцию по приготовлению этого блюда."
+    user_prompt = system_prompt + "\n\n" + "Предоставь пошаговую инструкцию по приготовлению этого блюда."
 
     messages = [
         {"role": "system", "content": "Ты профессиональный кулинарный помощник."},

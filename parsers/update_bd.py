@@ -1,6 +1,6 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
 from config import UPDATE_BD_TIME
-from parser.parse_bd import parse_product_from_vv
+from parsers.parse_bd import parse_product_from_vv
 
 
 def auto_update_bd():
