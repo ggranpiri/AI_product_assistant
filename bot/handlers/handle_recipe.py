@@ -5,8 +5,8 @@ from bot.handlers.buttons import send_main_menu
 from bot.handlers.handle_format import format_recipe_ingredients
 from bot.states.user_states import USER_STATE
 from gpt_request import get_ingredients_list, get_preparation_instructions
-from parsers.match_product import get_links_from_list
-from parsers.parse_bd import BD_path
+from parser.match_product import get_links_from_list
+from config import BD_path
 
 
 async def process_recipe(update: Update, context: CallbackContext, text: str, chat_id: int) -> None:

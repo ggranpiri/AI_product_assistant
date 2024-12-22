@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import json
 import re
 
-BD_path = "vkusvill_products"
+from config import BD_path
 
 # Задаем User-Agent для имитации реального браузера
 HEADERS = {
@@ -31,7 +31,7 @@ def get_categories():
 # Функция для получения количества страниц в категории
 def get_total_pages(category_url):
     response = requests.get(category_url, headers=HEADERS)
-    soup = BeautifulSoup(response.text, "html.parsers")
+    soup = BeautifulSoup(response.text, "html.parser")
 
     # Ищем кнопку последней страницы
     last_page = soup.select(".VV_Pager.js-lk-pager a")
@@ -50,7 +50,7 @@ def parse_products_in_category(category_url):
     for page in range(1, total_pages + 1):
         page_url = f"{category_url}?PAGEN_1={page}"
         response = requests.get(page_url, headers=HEADERS)
-        soup = BeautifulSoup(response.text, 'html.parsers')
+        soup = BeautifulSoup(response.text, 'html.parser')
 
         # Парсим карточки товаров на странице
         product_cards = soup.select('.ProductCards__list .ProductCard')
@@ -76,7 +76,6 @@ def parse_products_in_category(category_url):
                 "price": price
             })
     return products
-
 
 
 # Основная функция для парсинга всех категорий и записи в JSON

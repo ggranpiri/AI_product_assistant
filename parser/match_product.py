@@ -52,6 +52,10 @@ def get_links_from_list(products_needed, json_file):
             # Проверяем, содержится ли продукт в списке нужных
             for i, [needed_product, details] in enumerate(products_needed.items()):
                 needed_name = needed_product.lower()
+                if "помидоры" in needed_product:
+                    needed_name = needed_name.replace("помидоры", "томаты", 1)
+                if "растительное" in needed_product:
+                    needed_name = needed_name.replace("растительное", "подсолнечное", 1)
                 needed_quantity = details[0]  # Необходимое количество
                 needed_unit = details[1]  # Единица измерения
 

@@ -4,8 +4,8 @@ from telegram.ext import CallbackContext
 from bot.handlers.handle_format import format_ingredients_list
 from bot.handlers.handle_recipe import fetch_ingredients_list
 from bot.states.user_states import PURCHASE_HISTORY, PREV_MESSAGE, USER_STATE
-from parsers.match_product import get_links_from_list
-from parsers.parse_bd import BD_path
+from parser.match_product import get_links_from_list
+from config import BD_path
 
 
 async def process_shopping(update: Update, context: CallbackContext, chat_id: int, text: str) -> None:
